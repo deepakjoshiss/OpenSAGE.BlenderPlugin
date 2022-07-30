@@ -41,8 +41,8 @@ class MeshHeader:
     def __init__(
             self,
             version=Version(
-                major=4,
-                minor=2),
+                major=5,
+                minor=0),
             attrs=GEOMETRY_TYPE_NORMAL,
             mesh_name='',
             container_name='',

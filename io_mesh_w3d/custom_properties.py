@@ -269,6 +269,11 @@ Material.vm_args_0 = StringProperty(
     description='Vertex Material Arguments 0',
     default='')
 
+Material.stage1_image = PointerProperty(
+    name='Stage 1 Texture', 
+    type=bpy.types.Image,
+    description='Stage 1 Texture, It will use same UV mapping from main texture',)
+
 Material.vm_args_1 = StringProperty(
     name='vm_args_1',
     description='Vertex Material Arguments 1',

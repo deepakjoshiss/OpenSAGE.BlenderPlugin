@@ -29,6 +29,13 @@ def create_vertex_material(context, principleds, structure, mesh, b_mesh, name, 
             texture = structure.textures[tex_id]
             tex = find_texture(context, texture.file, texture.id)
             principleds[mat_id].base_color_texture.image = tex
+            if len(mat_pass.tx_stages) > 1:
+                tx_stage = mat_pass.tx_stages[1]
+                tex_id = tx_stage.tx_ids[0][0]
+                texture = structure.textures[tex_id]
+                context.info('stage 1 texture is: ' + str(texture.file))
+                tex = find_texture(context, texture.file, texture.id)
+                mesh.materials[mat_id].stage1_image = tex
 
 
 def create_material_from_vertex_material(name, vert_mat):

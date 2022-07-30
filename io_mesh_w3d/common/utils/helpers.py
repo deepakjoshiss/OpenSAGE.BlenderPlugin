@@ -79,7 +79,7 @@ def create_uvlayer(context, mesh, b_mesh, tris, mat_pass):
             if len(mat_pass.tx_stages[0].tx_coords) > 1:
                 context.warning('only one set of texture coordinates per texture stage supported')
         if len(mat_pass.tx_stages) > 1:
-            context.warning('only one texture stage per material pass supported')
+            context.warning('Limited Functionality for Stage 1 Texture')
 
     if tx_coords is None:
         return

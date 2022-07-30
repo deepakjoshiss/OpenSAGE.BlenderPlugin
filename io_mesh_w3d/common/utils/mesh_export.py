@@ -192,9 +192,18 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     vert_index = mesh_struct.triangles[j].vert_ids[loop.index % 3]
                     stage.tx_coords[0][vert_index] = uv_layer.data[loop.index].uv.copy()
             tx_stages.append(stage)
+            
+            if i < len(mesh.materials):
+                t_mat = mesh.materials[i]
+                if t_mat.stage1_image is not None:
+                    stage = TextureStage(
+                    tx_ids=[[1]],
+                    tx_coords=tx_stages[i].tx_coords)
+                    tx_stages.append(stage)
 
         b_mesh.free()
 
+        i_stage = 0
         for i, material in enumerate(mesh.materials):
             mat_pass = MaterialPass()
 
@@ -232,13 +241,28 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     tex = Texture(
                         id=img.name,
                         file=filepath,
-                        texture_info=info)
+                        texture_info=None)
                     mesh_struct.textures.append(tex)
                     shader.texturing = 1
 
-                    if i < len(tx_stages):
-                        mat_pass.tx_stages.append(tx_stages[i])
-
+                    if i_stage < len(tx_stages):
+                        mat_pass.tx_stages.append(tx_stages[i_stage])
+                    
+                    if material.stage1_image is not None:
+                        img = material.stage1_image
+                        filepath = os.path.basename(img.filepath)
+                        if filepath == '':
+                            filepath = img.name
+                        print(f'djj appending stage 1 \'{img.name}: {filepath}\'')
+                        tex = Texture(
+                            id=img.name,
+                            file=filepath,
+                            texture_info=None)
+                        mesh_struct.textures.append(tex)
+                        i_stage += 1
+                        mat_pass.tx_stages.append(tx_stages[i_stage])
+                        
+            i_stage += 1
             mesh_struct.material_passes.append(mat_pass)
 
         for layer in mesh.vertex_colors:

@@ -10,7 +10,7 @@ from io_mesh_w3d.custom_properties import *
 from io_mesh_w3d.geometry_export import *
 from io_mesh_w3d.bone_volume_export import *
 
-from io_mesh_w3d.blender_addon_updater import addon_updater_ops
+#from io_mesh_w3d.blender_addon_updater import addon_updater_ops
 
 VERSION = (0, 6, 7)
 
@@ -309,12 +309,19 @@ class MATERIAL_PROPERTIES_PANEL_PT_w3d(Panel):
             col.prop(mat, 'attributes')
             col = layout.column()
             col.prop(mat, 'translucency')
+            
+            # Stage 0 Layout
             col = layout.column()
             col.prop(mat, 'stage0_mapping')
             col = layout.column()
             col.prop(mat, 'vm_args_0')
+            
+            # Stage 1 Layout
             col = layout.column()
             col.prop(mat, 'stage1_mapping')
+            col = layout.split(factor=0.25)
+            col.label(text='Stage 1 image:')
+            col.template_ID(mat, "stage1_image", new="image.new", open="image.open")
             col = layout.column()
             col.prop(mat, 'vm_args_1')
 
@@ -452,8 +459,8 @@ class OBJECT_PT_DemoUpdaterPanel(bpy.types.Panel):
         addon_updater_ops.update_notice_box_ui(self, context)
 
 
-@addon_updater_ops.make_annotations
-class DemoPreferences(bpy.types.AddonPreferences):
+# @addon_updater_ops.make_annotations
+# class DemoPreferences(bpy.types.AddonPreferences):
     bl_idname = __package__
 
     auto_check_update = bpy.props.BoolProperty(
@@ -495,7 +502,7 @@ class DemoPreferences(bpy.types.AddonPreferences):
         mainrow = layout.row()
         col = mainrow.column()
 
-        addon_updater_ops.update_settings_ui(self, context)
+        # addon_updater_ops.update_settings_ui(self, context)
 
 
 CLASSES = (
@@ -508,22 +515,22 @@ CLASSES = (
     ExportGeometryData,
     ExportBoneVolumeData,
     TOOLS_PANEL_PT_w3d,
-    DemoPreferences,
+    # DemoPreferences,
     OBJECT_PT_DemoUpdaterPanel
 )
 
 
 def register():
-    addon_updater_ops._package = 'io_mesh_w3d'
-    addon_updater_ops.updater.addon = 'io_mesh_w3d'
-    addon_updater_ops.updater.user = "OpenSAGE"
-    addon_updater_ops.updater.repo = "OpenSAGE.BlenderPlugin"
-    addon_updater_ops.updater.website = "https://github.com/OpenSAGE/OpenSAGE.BlenderPlugin"
-    addon_updater_ops.updater.subfolder_path = "io_mesh_w3d"
-    addon_updater_ops.updater.include_branch_list = ['master']
-    addon_updater_ops.updater.verbose = False
+    # addon_updater_ops._package = 'io_mesh_w3d'
+    # addon_updater_ops.updater.addon = 'io_mesh_w3d'
+    # addon_updater_ops.updater.user = "OpenSAGE"
+    # addon_updater_ops.updater.repo = "OpenSAGE.BlenderPlugin"
+    # addon_updater_ops.updater.website = "https://github.com/OpenSAGE/OpenSAGE.BlenderPlugin"
+    # addon_updater_ops.updater.subfolder_path = "io_mesh_w3d"
+    # addon_updater_ops.updater.include_branch_list = ['master']
+    # addon_updater_ops.updater.verbose = False
 
-    addon_updater_ops.register(bl_info)
+    # addon_updater_ops.register(bl_info)
 
     for class_ in CLASSES:
         bpy.utils.register_class(class_)
@@ -535,7 +542,7 @@ def register():
 
 
 def unregister():
-    addon_updater_ops.unregister()
+    # addon_updater_ops.unregister()
 
     for class_ in reversed(CLASSES):
         bpy.utils.unregister_class(class_)
