@@ -278,12 +278,13 @@ class TimeCodedBitChannel:
             type=read_ubyte(io_stream),
             default_value=read_ubyte(io_stream))
 
+        print('djj found type is ' + str(result.type))
         result.time_codes = read_fixed_list(io_stream, result.num_time_codes, TimeCodedBitDatum.read)
         return result
 
     def size(self, include_head=True):
         size = const_size(8, include_head)
-        size += list_size(self.time_codes, False)
+        size += list_size_type(self.time_codes, False, self.type)
         return size
 
     def write(self, io_stream):
@@ -382,6 +383,27 @@ class CompressedAnimation:
         self.adaptive_delta_channels = adaptive_delta_channels if adaptive_delta_channels is not None else []
         self.time_coded_bit_channels = time_coded_bit_channels if time_coded_bit_channels is not None else []
         self.motion_channels = motion_channels if motion_channels is not None else []
+
+    @staticmethod
+    def create_using_channels(header, all_channels=None):
+        result = CompressedAnimation(header=header)
+        result.time_coded_channels = []
+        result.time_coded_bit_channels = []
+        result.adaptive_delta_channels = []
+        result.motion_channels = []
+        for channel in all_channels:
+            if isinstance(channel, TimeCodedBitChannel):
+                print('djj appending bit channel ' + str(channel.type))
+                result.time_coded_bit_channels.append(channel)
+            elif isinstance(channel, AdaptiveDeltaAnimationChannel):
+                result.adaptive_delta_channels.append(channel)
+            elif isinstance(channel, MotionChannel):
+                result.motion_channels.append(channel)
+            else:
+                result.time_coded_channels.append(channel)
+
+        return result
+
 
     def validate(self, context, w3x=False):
         if not self.time_coded_channels:

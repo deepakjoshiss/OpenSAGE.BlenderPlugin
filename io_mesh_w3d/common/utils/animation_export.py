@@ -44,7 +44,8 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
 
         channel_type = fcu.array_index
         vec_len = 1
-
+        
+        print('djj animation fce is ' + fcu.data_path)
         if is_rotation(fcu):
             channel_type = CHANNEL_Q
             vec_len = 4
@@ -54,10 +55,21 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
 
         if not (channel_type == 6 and fcu.array_index > 0):
             if timecoded:
-                channel = TimeCodedAnimationChannel(
-                    vector_len=vec_len,
-                    type=channel_type,
-                    pivot=pivot_index)
+                if is_visibility(fcu):
+                    print('djj In time coded bit channel ' +  fcu.data_path)
+                    channel = TimeCodedBitChannel(
+                        type=0,
+                        pivot=pivot_index)
+                    num_keyframes = len(fcu.keyframe_points)
+                    channel.vector_len = vec_len
+                    channel.time_codes = [None] * num_keyframes
+                    channel.num_time_codes = num_keyframes
+                    channel.default_value = 1
+                else:    
+                    channel = TimeCodedAnimationChannel(
+                        vector_len=vec_len,
+                        type=channel_type,
+                        pivot=pivot_index)
 
                 num_keyframes = len(fcu.keyframe_points)
                 channel.time_codes = [None] * num_keyframes
@@ -129,9 +141,9 @@ def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
         channels.extend(retrieve_channels(rig.data, hierarchy, timecoded))
 
     if timecoded:
-        ani_struct = CompressedAnimation(
+        ani_struct = CompressedAnimation.create_using_channels(
             header=CompressedAnimationHeader(flavor=TIME_CODED_FLAVOR),
-            time_coded_channels=channels)
+            all_channels=channels)
     else:
         ani_struct = Animation(header=AnimationHeader(), channels=channels)
 

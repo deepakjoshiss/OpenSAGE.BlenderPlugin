@@ -81,7 +81,7 @@ class ExportW3D(bpy.types.Operator, ExportHelper, ReportHelper):
         default='HM')
 
     use_existing_skeleton: BoolProperty(
-        name='Use existing skeleton', description='Use an already existing skeleton (.skn)', default=False)
+        name='Use existing skeleton', description='Use an already existing skeleton (.skn)', default=True)
 
     animation_compression: EnumProperty(
         name='Compression',

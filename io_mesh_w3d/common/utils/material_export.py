@@ -24,8 +24,9 @@ def find_texture_name(texture):
     return ''
 
 def append_texture_if_valid(texture, used_textures):
-    name = find_texture_name(texture)
-    if isinstance(name, str) and name is not '':
+    texture = find_texture_name(texture)
+    if isinstance(texture, str) and texture is not '':
+        texture = set_texture_extension_to_tga(texture)
         if texture not in used_textures:
             used_textures.append(texture)
 
