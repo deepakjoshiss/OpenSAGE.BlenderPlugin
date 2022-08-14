@@ -509,6 +509,9 @@ CLASSES = (
     ExportW3D,
     ImportW3D,
     ShaderProperties,
+    ListNodeProperty,
+    ListProperty,
+    AabbtreeProperties,
     MESH_PROPERTIES_PANEL_PT_w3d,
     BONE_PROPERTIES_PANEL_PT_w3d,
     MATERIAL_PROPERTIES_PANEL_PT_w3d,
@@ -535,6 +538,7 @@ def register():
     for class_ in CLASSES:
         bpy.utils.register_class(class_)
 
+    Mesh.aabbtree = PointerProperty(type=AabbtreeProperties)
     Material.shader = PointerProperty(type=ShaderProperties)
 
     bpy.types.TOPBAR_MT_file_import.append(menu_func_import)

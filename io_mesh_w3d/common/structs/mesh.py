@@ -251,6 +251,7 @@ class Mesh:
                 context.info('-> bitangents are computed in blender')
                 io_stream.seek(chunk_size, 1)
             elif chunk_type == W3D_CHUNK_AABBTREE:
+                print('djjp reading aabtree')
                 result.aabbtree = AABBTree.read(context, io_stream, subchunk_end)
             elif chunk_type == W3D_CHUNK_PRELIT_UNLIT:
                 result.prelit_unlit = PrelitBase.read(context, io_stream, subchunk_end, chunk_type)

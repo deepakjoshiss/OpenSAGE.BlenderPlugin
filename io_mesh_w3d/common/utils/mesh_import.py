@@ -1,8 +1,10 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+from pprint import pprint
 import bpy
 import bmesh
+from io_mesh_w3d.common.structs.mesh_structs.aabbtree import AABBTree
 from io_mesh_w3d.common.utils.material_import import *
 
 
@@ -31,6 +33,9 @@ def create_mesh(context, mesh_struct, coll):
 
     link_object_to_active_scene(mesh_ob, coll)
 
+    if(mesh_struct.aabbtree is not None):
+        set_aabbtree_properties(mesh, mesh_struct.aabbtree)
+    
     if mesh_struct.is_hidden():
         mesh_ob.hide_set(True)
 
@@ -153,3 +158,28 @@ def create_vertex_color_layer(mesh, colors, name, index):
 
     for i, loop in enumerate(mesh.loops):
         layer.data[i].color = colors[loop.vertex_index].to_vector_rgba()
+
+def set_aabbtree_properties(mesh, aabbtree: AABBTree):
+    mesh.aabbtree.poly_count = aabbtree.header.poly_count
+    mesh.aabbtree.node_count = aabbtree.header.node_count
+    for poly in aabbtree.poly_indices:
+        pObj = mesh.aabbtree.poly_indices.add()
+        pObj.intProp = poly
+    
+    for node in aabbtree.nodes:
+        nObj = mesh.aabbtree.nodes.add()
+        minObj = nObj.values.add()
+        minObj.vectorProp = node.min.x, node.min.y, node.min.z
+        maxObj = nObj.values.add()
+        maxObj.vectorProp = node.max.x, node.max.y, node.max.z
+        front = nObj.values.add()
+        back = nObj.values.add()
+
+        if(node.children is not None):
+            front.intProp = node.children.front
+            back.intProp = node.children.back
+
+        if(node.polys is not None):
+            front.intProp = node.polys.begin
+            back.intProp = node.polys.count
+        

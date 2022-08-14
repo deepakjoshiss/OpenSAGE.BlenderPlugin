@@ -284,7 +284,7 @@ class TimeCodedBitChannel:
 
     def size(self, include_head=True):
         size = const_size(8, include_head)
-        size += list_size_type(self.time_codes, False, self.type)
+        size += list_size(self.time_codes, False)
         return size
 
     def write(self, io_stream):
@@ -437,6 +437,7 @@ class CompressedAnimation:
                 else:
                     skip_unknown_chunk(context, io_stream, chunk_type, chunk_size)
             elif chunk_type == W3D_CHUNK_COMPRESSED_BIT_CHANNEL:
+                print('djj reading bit channel ' + str(chunk_size))
                 result.time_coded_bit_channels.append(TimeCodedBitChannel.read(io_stream))
             elif chunk_type == W3D_CHUNK_COMPRESSED_ANIMATION_MOTION_CHANNEL:
                 result.motion_channels.append(MotionChannel.read(io_stream))

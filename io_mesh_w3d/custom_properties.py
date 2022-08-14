@@ -2,6 +2,7 @@
 # Written by Stephan Vedder and Michael Schnabel
 
 import bpy
+import sys
 from bpy.props import *
 from bpy.types import Material, PropertyGroup, Bone, Mesh, Object
 
@@ -643,3 +644,23 @@ class ShaderProperties(PropertyGroup):
             ('3', 'InvScale', '~(~local * ~other) = local + (1-local)*other'),
         ],
         default='0')
+
+class ListNodeProperty(PropertyGroup):
+    intProp: IntProperty(min=-1000, max=1000, name="Int Prop")
+    vectorProp: FloatVectorProperty(
+    name='Vector',
+    subtype='TRANSLATION',
+    size=3,
+    default=(0.0, 0.0, 0.0),
+    min=-100, max=100)
+
+class ListProperty(PropertyGroup):
+    values: CollectionProperty(type=ListNodeProperty)
+
+
+class AabbtreeProperties(PropertyGroup):
+    node_count: IntProperty(min=0, max=1000, name="Node Count")
+    poly_count: IntProperty(min=0, max=1000, name="Node Count")
+    poly_indices: CollectionProperty(type=ListNodeProperty)
+    nodes: CollectionProperty(type=ListProperty)
+

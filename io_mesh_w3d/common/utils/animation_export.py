@@ -60,10 +60,10 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
                     channel = TimeCodedBitChannel(
                         type=0,
                         pivot=pivot_index)
-                    num_keyframes = len(fcu.keyframe_points)
-                    channel.vector_len = vec_len
-                    channel.time_codes = [None] * num_keyframes
-                    channel.num_time_codes = num_keyframes
+                    # num_keyframes = len(fcu.keyframe_points)
+                    # channel.vector_len = vec_len
+                    # channel.time_codes = [None] * num_keyframes
+                    # channel.num_time_codes = num_keyframes
                     channel.default_value = 1
                 else:    
                     channel = TimeCodedAnimationChannel(
@@ -99,7 +99,9 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
                 frame = int(keyframe.co.x)
                 val = keyframe.co.y
 
-                if is_visibility(fcu) or is_translation(channel_type):
+                if is_visibility(fcu):
+                    channel.time_codes[i] = TimeCodedBitDatum(time_code=frame, value=val)
+                elif is_translation(channel_type):
                     channel.time_codes[i] = TimeCodedDatum(time_code=frame, value=val)
                 else:
                     if channel.time_codes[i] is None:
