@@ -85,6 +85,7 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
         for i, vertex in enumerate(mesh.vertices):
             mesh_struct.shade_ids.append(i)
             matrix = Matrix.Identity(4)
+            matrix2 = Matrix.Identity(4)
 
             if vertex.groups:
                 vert_inf = VertexInfluence()
@@ -112,6 +113,11 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                 else:
                     matrix = matrix @ rig.matrix_local.inverted()
 
+                if vert_inf.xtra_idx > 0:
+                    matrix2 = matrix2 @ rig.data.bones[hierarchy.pivots[vert_inf.xtra_idx].name].matrix_local.inverted()
+                else:
+                    matrix2 = matrix2 @ matrix
+
                 if len(vertex.groups) > 2:
                     overskinned_vertices_error = True
                     context.error(
@@ -125,13 +131,17 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
             vertex.co.y *= scale.y
             vertex.co.z *= scale.z
             mesh_struct.verts.append(matrix @ vertex.co)
+            mesh_struct.verts2.append(matrix2 @ vertex.co)
 
             _, rotation, _ = matrix.decompose()
+            _, rotation2, _ = matrix2.decompose()
+
 
             if i in loop_dict:
                 loop = loop_dict[i]
                 # do NOT use loop.normal here! that might result in weird shading issues
-                mesh_struct.normals.append(rotation @ vertex.normal)
+                mesh_struct.normals.append(rotation @ loop.normal)
+                mesh_struct.normals2.append(rotation2 @ loop.normal)
 
                 if mesh.uv_layers:
                     # in order to adapt to 3ds max orientation
