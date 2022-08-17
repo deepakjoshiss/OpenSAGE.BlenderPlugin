@@ -388,6 +388,60 @@ def split_multi_uv_vertices(context, mesh, b_mesh):
 
     for ver in b_mesh.verts:
         ver.select_set(False)
+    totals = 0
+    for i, uv_layer in enumerate(mesh.uv_layers):
+        tx_coords = [None] * len(uv_layer.data)
+        for j, face in enumerate(b_mesh.faces):
+            loop = floop = face.loops[0]
+            while True:
+                oloop = loop.link_loop_radial_next
+                while True:
+                    # print('djjp loops ' + str(loop.index) + ' ' + str(oloop.index))
+                
+                    auv_cur = uv_layer.data[loop.index].uv
+                    auv_next = uv_layer.data[loop.link_loop_next.index].uv
+
+                    buv_cur = uv_layer.data[oloop.index].uv
+                    buv_next = uv_layer.data[oloop.link_loop_next.index].uv
+
+                    if loop.vert != oloop.vert:
+                        # print('djjp flipping ')
+                        tuv = buv_next
+                        buv_next = buv_cur
+                        buv_cur = tuv
+                    
+                    # print('djjp values are ' + str(auv_cur) + ' ' + str(buv_cur) + '               ' + str(auv_next) + ' ' + str(buv_next))
+                    if auv_cur != buv_cur or auv_next != buv_next:
+                        totals +=1
+                        # print('fount a seam ' + str(totals))
+                        loop.edge.select_set(True)
+                        break
+                    
+                    oloop = oloop.link_loop_radial_next
+                    if oloop == loop:
+                        break
+
+                loop = loop.link_loop_next
+                if loop == floop:
+                    break
+                print('djjp found seams are ' + str(totals))
+
+    split_edges = [e for e in b_mesh.edges if e.select]
+
+    for ver in b_mesh.verts:
+        ver.select_set(False)
+        
+    if len(split_edges) > 0:
+        bmesh.ops.split_edges(b_mesh, edges=split_edges, verts=[], use_verts=False)
+        context.info(f'mesh \'{mesh.name}\' vertices have been split because of multiple uv coordinates per vertex!')
+
+    return b_mesh
+
+def split_multi_uv_verticesOrig(context, mesh, b_mesh):
+    b_mesh.verts.ensure_lookup_table()
+
+    for ver in b_mesh.verts:
+        ver.select_set(False)
 
     for i, uv_layer in enumerate(mesh.uv_layers):
         tx_coords = [None] * len(uv_layer.data)
