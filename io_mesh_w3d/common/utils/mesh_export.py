@@ -101,7 +101,7 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     context.warning(f'mesh \'{mesh_object.name}\' vertex {i} both bone weights where 0!')
                     vert_inf.bone_inf = 1.0
 
-                if abs(vert_inf.bone_inf + vert_inf.xtra_inf - 1.0) > 0.1:
+                if abs(vert_inf.bone_inf + vert_inf.xtra_inf - 1.0) > 0.005:
                     context.warning(
                         f'mesh \'{mesh_object.name}\' vertex {i} both bone weights did not add up to 100%! ({vert_inf.bone_inf:.{2}f}, {vert_inf.xtra_inf:.{2}f})')
                     vert_inf.bone_inf = 1.0 - vert_inf.xtra_inf
@@ -424,7 +424,7 @@ def split_multi_uv_vertices(context, mesh, b_mesh):
                 loop = loop.link_loop_next
                 if loop == floop:
                     break
-                print('djjp found seams are ' + str(totals))
+        print('found seams are ' + str(totals))
 
     split_edges = [e for e in b_mesh.edges if e.select]
 
