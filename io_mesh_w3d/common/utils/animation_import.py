@@ -38,6 +38,7 @@ def get_bone(context, rig, hierarchy, channel):
 
 
 def setup_animation(animation):
+    print('creating new action')
     bpy.context.scene.render.fps = animation.header.frame_rate
     bpy.context.scene.frame_start = 0
     bpy.context.scene.frame_end = animation.header.num_frames - 1
@@ -127,6 +128,12 @@ def process_motion_channels(context, hierarchy, channels, rig):
 def create_animation(context, rig, animation, hierarchy):
     if animation is None:
         return
+        
+    splitname = context.filename.split('.w3', 1)[0].split('_', 1)
+    action = bpy.data.actions.new(splitname[-1])
+    if not rig.animation_data:
+        rig.animation_data_create()
+    rig.animation_data.action = action
 
     setup_animation(animation)
 
@@ -136,5 +143,5 @@ def create_animation(context, rig, animation, hierarchy):
         process_motion_channels(context, hierarchy, animation.motion_channels, rig)
     else:
         process_channels(context, hierarchy, animation.channels, rig, apply_uncompressed)
-
+    
     bpy.context.scene.frame_set(0)

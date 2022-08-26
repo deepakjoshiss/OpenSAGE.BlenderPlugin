@@ -102,10 +102,10 @@ def load_file(context, data_context, path=None):
 ##########################################################################
 
 
-def load(context):
+def load(context, path = None):
     data_context = DataContext()
 
-    load_file(context, data_context)
+    load_file(context, data_context, path)
 
     hierarchy = data_context.hierarchy
     hlod = data_context.hlod

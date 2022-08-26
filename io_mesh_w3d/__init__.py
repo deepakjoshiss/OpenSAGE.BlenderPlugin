@@ -196,13 +196,23 @@ class ImportW3D(bpy.types.Operator, ImportHelper, ReportHelper):
     file_format = ''
 
     filter_glob: StringProperty(default='*.w3d;*.w3x', options={'HIDDEN'})
+    
+    # Selected files
+    files: CollectionProperty(type=PropertyGroup)
+    filename = ''
 
     def execute(self, context):
         print_version(self.info)
+        folder = os.path.dirname(self.filepath)
+
         if self.filepath.lower().endswith('.w3d'):
             from .w3d.import_w3d import load
-            file_format = 'W3D'
-            load(self)
+            for i in self.files:
+                self.filepath = (os.path.join(folder, i.name))
+                self.filename = i.name
+                self.info('dj loading file ' + self.filename)
+                file_format = 'W3D'
+                load(self)  
         else:
             from .w3x.import_w3x import load
             file_format = 'W3X'
