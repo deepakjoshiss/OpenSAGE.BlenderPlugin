@@ -76,7 +76,10 @@ class ExportW3D(bpy.types.Operator, ExportHelper, ReportHelper):
             ('M',
              'Mesh',
              'This will export a simple mesh (only the first of the scene if there are multiple), \
-                without any hierarchy/skeleton and animation data')),
+                without any hierarchy/skeleton and animation data'),
+            ('AA',
+             'All Animations',
+             'This will export a All actions from scene with')),
         description='Select the export mode',
         default='HM')
 
@@ -91,7 +94,7 @@ class ExportW3D(bpy.types.Operator, ExportHelper, ReportHelper):
                # 'This will use adaptive delta compression to reduce size'),
                ),
         description='The method used for compressing the animation data',
-        default='U')
+        default='TC')
 
     force_vertex_materials: BoolProperty(
         name='Force Vertex Materials', description='Export all materials as Vertex Materials only', default=False)
@@ -156,7 +159,7 @@ class ExportW3D(bpy.types.Operator, ExportHelper, ReportHelper):
         if self.file_format == 'W3D' and 'M' in self.export_mode:
             self.draw_force_vertex_materials()
 
-        if (self.export_mode == 'A' or self.export_mode == 'HAM') \
+        if (self.export_mode == 'A' or self.export_mode == 'AA' or self.export_mode == 'HAM') \
                 and not self.file_format == 'W3X':
             self.draw_animation_settings()
 

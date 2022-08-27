@@ -19,15 +19,10 @@ def is_rotation(fcu):
 def is_visibility(fcu):
     return 'visibility' in fcu.data_path or 'hide' in fcu.data_path
 
-
-def retrieve_channels(obj, hierarchy, timecoded, name=None):
-    if obj.animation_data is None or obj.animation_data.action is None:
-        return []
-
+def retrieve_channel_data(hierarchy, timecoded, action, name=None):
     channel = None
     channels = []
-
-    for fcu in obj.animation_data.action.fcurves:
+    for fcu in action.fcurves:
         if name is None:
             values = fcu.data_path.split('"')
             if len(values) == 1:
@@ -45,7 +40,7 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
         channel_type = fcu.array_index
         vec_len = 1
         
-        print('djj animation fce is ' + fcu.data_path)
+        print('djj animation fce is ' + fcu.data_path + ' ' + pivot_name + ' ' +str(pivot_index))
         if is_rotation(fcu):
             channel_type = CHANNEL_Q
             vec_len = 4
@@ -131,17 +126,13 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
     return channels
 
 
-def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
-    channels = []
+def retrieve_channels(obj, hierarchy, timecoded, name=None):
+    if obj.animation_data is None or obj.animation_data.action is None:
+        return []
 
-    for mesh in get_objects('MESH'):
-        if retrieve_channels(mesh, hierarchy, timecoded, mesh.name):
-            context.warning(f'Mesh \'{mesh.name}\' is animated, animate its parent bone instead!')
+    return retrieve_channel_data(hierarchy, timecoded, obj.animation_data.action, name)
 
-    if rig is not None:
-        channels.extend(retrieve_channels(rig, hierarchy, timecoded))
-        channels.extend(retrieve_channels(rig.data, hierarchy, timecoded))
-
+def create_anim_struct(animation_name, hierarchy, timecoded, channels):
     if timecoded:
         ani_struct = CompressedAnimation.create_using_channels(
             header=CompressedAnimationHeader(flavor=TIME_CODED_FLAVOR),
@@ -158,3 +149,32 @@ def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
     ani_struct.header.num_frames = end_frame + 1 - start_frame
     ani_struct.header.frame_rate = bpy.context.scene.render.fps
     return ani_struct
+
+def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
+    channels = []
+
+    for mesh in get_objects('MESH'):
+        if retrieve_channels(mesh, hierarchy, timecoded, mesh.name):
+            context.warning(f'Mesh \'{mesh.name}\' is animated, animate its parent bone instead!')
+
+    if rig is not None:
+        channels.extend(retrieve_channels(rig, hierarchy, timecoded))
+        # print('djjp extending rig ' + str(len(channels)))
+        channels.extend(retrieve_channels(rig.data, hierarchy, timecoded))
+        # print('djjp extending rig data' + str(len(channels)))
+
+    return create_anim_struct(animation_name, hierarchy, timecoded, channels)
+
+
+def retrieve_all_animations(context, animation_name, hierarchy, rig, timecoded):
+    channels = None
+    anims = []
+    h_name = hierarchy.name().split('_')[0]
+    for action in bpy.data.actions:
+        channels = []
+        if rig is not None:
+            channels.extend(retrieve_channel_data(hierarchy, timecoded, action))
+        # print('djjp action name is ' + action.name + ' ' + str(len(channels)))
+        anims.append(create_anim_struct(h_name + '_' + action.name, hierarchy, timecoded, channels))
+
+    return anims
