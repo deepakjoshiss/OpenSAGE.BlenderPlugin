@@ -32,8 +32,8 @@ def get_bone(context, rig, hierarchy, channel):
         return None
     pivot = hierarchy.pivots[channel.pivot]
 
-    if is_visibility(channel) and pivot.name in rig.data.bones:
-        return rig.data.bones[pivot.name]
+    # if is_visibility(channel) and pivot.name in rig.data.bones:
+    #     return rig.data.bones[pivot.name]
     return rig.pose.bones[pivot.name]
 
 
@@ -58,12 +58,12 @@ def set_rotation(bone, frame, value):
 
 
 def set_visibility(bone, frame, value):
-    if isinstance(bone, bpy.types.Bone):
+    if isinstance(bone, bpy.types.PoseBone):
         bone.visibility = value
         bone.keyframe_insert(data_path='visibility', frame=frame, options=creation_options)
-    else:
-        bone.hide_viewport = bool(value)
-        bone.keyframe_insert(data_path='hide_viewport', frame=frame, options=creation_options)
+    # else:
+        # bone.hide_viewport = bool(value)
+        # bone.keyframe_insert(data_path='hide_viewport', frame=frame, options=creation_options)
 
 
 def set_keyframe(bone, channel, frame, value):

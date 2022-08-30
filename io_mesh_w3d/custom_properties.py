@@ -4,7 +4,7 @@
 import bpy
 import sys
 from bpy.props import *
-from bpy.types import Material, PropertyGroup, Bone, Mesh, Object
+from bpy.types import Material, PropertyGroup, Bone, PoseBone, Mesh, Object
 
 
 ##########################################################################
@@ -128,7 +128,7 @@ Mesh.contact_tag = EnumProperty(
 # PoseBone
 ##########################################################################
 
-Bone.visibility = FloatProperty(
+PoseBone.visibility = FloatProperty(
     name='Visibility',
     default=1.0,
     min=0.0, max=1.0,

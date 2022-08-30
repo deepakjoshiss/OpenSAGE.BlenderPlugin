@@ -1,6 +1,7 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+from math import floor
 import bpy
 from mathutils import Quaternion
 from io_mesh_w3d.common.utils.helpers import *
@@ -132,7 +133,7 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
 
     return retrieve_channel_data(hierarchy, timecoded, obj.animation_data.action, name)
 
-def create_anim_struct(animation_name, hierarchy, timecoded, channels):
+def create_anim_struct(animation_name, hierarchy, timecoded, channels, frame_range = None):
     if timecoded:
         ani_struct = CompressedAnimation.create_using_channels(
             header=CompressedAnimationHeader(flavor=TIME_CODED_FLAVOR),
@@ -143,8 +144,8 @@ def create_anim_struct(animation_name, hierarchy, timecoded, channels):
     ani_struct.header.name = animation_name
     ani_struct.header.hierarchy_name = hierarchy.name()
 
-    start_frame = bpy.context.scene.frame_start
-    end_frame = bpy.context.scene.frame_end
+    start_frame = floor(frame_range[0]) if frame_range else bpy.context.scene.frame_start
+    end_frame = floor(frame_range[1]) if frame_range else bpy.context.scene.frame_end
 
     ani_struct.header.num_frames = end_frame + 1 - start_frame
     ani_struct.header.frame_rate = bpy.context.scene.render.fps
@@ -175,6 +176,6 @@ def retrieve_all_animations(context, animation_name, hierarchy, rig, timecoded):
         if rig is not None:
             channels.extend(retrieve_channel_data(hierarchy, timecoded, action))
         # print('djjp action name is ' + action.name + ' ' + str(len(channels)))
-        anims.append(create_anim_struct(h_name + '_' + action.name, hierarchy, timecoded, channels))
+        anims.append(create_anim_struct(h_name + '_' + action.name, hierarchy, timecoded, channels, action.frame_range))
 
     return anims
