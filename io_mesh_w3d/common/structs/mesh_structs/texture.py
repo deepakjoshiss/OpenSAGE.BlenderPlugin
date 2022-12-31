@@ -1,6 +1,7 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+from io_mesh_w3d.common.utils.material_export import set_texture_extension_to_tga
 from io_mesh_w3d.w3d.utils.helpers import *
 from io_mesh_w3d.w3x.io_xml import *
 
@@ -71,7 +72,8 @@ class Texture:
     def write(self, io_stream):
         write_chunk_head(W3D_CHUNK_TEXTURE, io_stream, self.size(False), has_sub_chunks=True)
         write_chunk_head(W3D_CHUNK_TEXTURE_NAME, io_stream, text_size(self.file, False))
-        write_string(self.file, io_stream)
+        tx_tga = set_texture_extension_to_tga(self.file)
+        write_string(tx_tga, io_stream)
 
         if self.texture_info is not None:
             self.texture_info.write(io_stream)

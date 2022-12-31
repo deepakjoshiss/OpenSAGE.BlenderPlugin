@@ -15,3 +15,5 @@ class DataContext:
         self.collision_boxes = collision_boxes if collision_boxes is not None else []
         self.animation = animation
         self.compressed_animation = compressed_animation
+        self.animation_col = []
+        

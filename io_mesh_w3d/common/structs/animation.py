@@ -293,10 +293,12 @@ class Animation:
         result.header.hierarchy_name = xml_animation.get('Hierarchy')
         result.header.num_frames = int(xml_animation.get('NumFrames'))
         result.header.frame_rate = int(xml_animation.get('FrameRate'))
+        context.info('In parse animation')
 
         for child in xml_animation:
             if child.tag == 'Channels':
                 for channel_child in child:
+                    context.info(f'channel is \'{channel_child.get("Type")}\'')
                     if channel_child.tag in ['ChannelScalar', 'ChannelQuaternion']:
                         if channel_child.get('Type') == 'Visibility':
                             result.channels.append(AnimationBitChannel.parse(channel_child))

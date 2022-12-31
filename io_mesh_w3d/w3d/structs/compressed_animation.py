@@ -278,6 +278,7 @@ class TimeCodedBitChannel:
             type=read_ubyte(io_stream),
             default_value=read_ubyte(io_stream))
 
+        print('djj found type is ' + str(result.type))
         result.time_codes = read_fixed_list(io_stream, result.num_time_codes, TimeCodedBitDatum.read)
         return result
 
@@ -383,6 +384,27 @@ class CompressedAnimation:
         self.time_coded_bit_channels = time_coded_bit_channels if time_coded_bit_channels is not None else []
         self.motion_channels = motion_channels if motion_channels is not None else []
 
+    @staticmethod
+    def create_using_channels(header, all_channels=None):
+        result = CompressedAnimation(header=header)
+        result.time_coded_channels = []
+        result.time_coded_bit_channels = []
+        result.adaptive_delta_channels = []
+        result.motion_channels = []
+        for channel in all_channels:
+            if isinstance(channel, TimeCodedBitChannel):
+                print('djj appending bit channel ' + str(channel.type))
+                result.time_coded_bit_channels.append(channel)
+            elif isinstance(channel, AdaptiveDeltaAnimationChannel):
+                result.adaptive_delta_channels.append(channel)
+            elif isinstance(channel, MotionChannel):
+                result.motion_channels.append(channel)
+            else:
+                result.time_coded_channels.append(channel)
+
+        return result
+
+
     def validate(self, context, w3x=False):
         if not self.time_coded_channels:
             context.error('Scene does not contain any animation data')
@@ -415,6 +437,7 @@ class CompressedAnimation:
                 else:
                     skip_unknown_chunk(context, io_stream, chunk_type, chunk_size)
             elif chunk_type == W3D_CHUNK_COMPRESSED_BIT_CHANNEL:
+                print('djj reading bit channel ' + str(chunk_size))
                 result.time_coded_bit_channels.append(TimeCodedBitChannel.read(io_stream))
             elif chunk_type == W3D_CHUNK_COMPRESSED_ANIMATION_MOTION_CHANNEL:
                 result.motion_channels.append(MotionChannel.read(io_stream))

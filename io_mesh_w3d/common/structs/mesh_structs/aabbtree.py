@@ -82,7 +82,7 @@ class AABBTreeNode:
             min=read_vector(io_stream),
             max=read_vector(io_stream))
         node.children = Children(
-            front=read_long(io_stream),
+            front=read_long(io_stream) & 0x7FFFFFFF,
             back=read_long(io_stream))
         return node
 
@@ -93,7 +93,7 @@ class AABBTreeNode:
     def write(self, io_stream):
         write_vector(self.min, io_stream)
         write_vector(self.max, io_stream)
-        write_long(self.children.front, io_stream)
+        write_ulong(self.children.front | 0x80000000, io_stream)
         write_long(self.children.back, io_stream)
 
     @staticmethod

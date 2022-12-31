@@ -27,8 +27,8 @@ class VertexInfluence:
     def write(self, io_stream):
         write_ushort(self.bone_idx, io_stream)
         write_ushort(self.xtra_idx, io_stream)
-        write_ushort(int(self.bone_inf * 100), io_stream)
-        write_ushort(int(self.xtra_inf * 100), io_stream)
+        write_ushort(round(self.bone_inf * 100), io_stream)
+        write_ushort(round(self.xtra_inf * 100), io_stream)
 
     @staticmethod
     def parse(xml_vertex_influence, xml_vertex_influence2=None):

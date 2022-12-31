@@ -1,6 +1,8 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+import os
+
 
 def save(context, export_settings, data_context):
     filepath = context.filepath
@@ -11,6 +13,19 @@ def save(context, export_settings, data_context):
 
     export_mode = export_settings['mode']
     context.info(f'export mode: {export_mode}')
+
+    if(export_mode == 'AA'):
+        folder = os.path.dirname(filepath)
+        for anim in data_context.animation_col:
+            if anim.validate(context):
+                context.info('djjp anim exporting ' + anim.header.name)
+                file = open(folder + '/' + anim.header.name + context.filename_ext, 'wb')
+                anim.write(file)
+                file.close()
+            else:    
+                context.warn('djjp anim validate faild ' + anim.header.name)
+        context.info('finished')
+        return {'FINISHED'}
 
     file = open(filepath, 'wb')
 

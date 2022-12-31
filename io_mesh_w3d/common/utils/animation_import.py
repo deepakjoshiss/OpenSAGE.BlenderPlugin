@@ -32,12 +32,13 @@ def get_bone(context, rig, hierarchy, channel):
         return None
     pivot = hierarchy.pivots[channel.pivot]
 
-    if is_visibility(channel) and pivot.name in rig.data.bones:
-        return rig.data.bones[pivot.name]
+    # if is_visibility(channel) and pivot.name in rig.data.bones:
+    #     return rig.data.bones[pivot.name]
     return rig.pose.bones[pivot.name]
 
 
 def setup_animation(animation):
+    print('creating new action')
     bpy.context.scene.render.fps = animation.header.frame_rate
     bpy.context.scene.frame_start = 0
     bpy.context.scene.frame_end = animation.header.num_frames - 1
@@ -57,12 +58,12 @@ def set_rotation(bone, frame, value):
 
 
 def set_visibility(bone, frame, value):
-    if isinstance(bone, bpy.types.Bone):
+    if isinstance(bone, bpy.types.PoseBone):
         bone.visibility = value
         bone.keyframe_insert(data_path='visibility', frame=frame, options=creation_options)
-    else:
-        bone.hide_viewport = bool(value)
-        bone.keyframe_insert(data_path='hide_viewport', frame=frame, options=creation_options)
+    # else:
+        # bone.hide_viewport = bool(value)
+        # bone.keyframe_insert(data_path='hide_viewport', frame=frame, options=creation_options)
 
 
 def set_keyframe(bone, channel, frame, value):
@@ -127,6 +128,12 @@ def process_motion_channels(context, hierarchy, channels, rig):
 def create_animation(context, rig, animation, hierarchy):
     if animation is None:
         return
+        
+    splitname = context.filename.split('.w3', 1)[0].split('_', 1)
+    action = bpy.data.actions.new(splitname[-1])
+    if not rig.animation_data:
+        rig.animation_data_create()
+    rig.animation_data.action = action
 
     setup_animation(animation)
 
@@ -136,5 +143,5 @@ def create_animation(context, rig, animation, hierarchy):
         process_motion_channels(context, hierarchy, animation.motion_channels, rig)
     else:
         process_channels(context, hierarchy, animation.channels, rig, apply_uncompressed)
-
+    
     bpy.context.scene.frame_set(0)

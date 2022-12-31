@@ -30,7 +30,7 @@ def save_data(context, export_settings):
 def retrieve_data(context, export_settings):
     export_mode = export_settings['mode']
 
-    if export_mode not in ['M', 'HM', 'HAM', 'H', 'A']:
+    if export_mode not in ['M', 'HM', 'HAM', 'H', 'A', 'AA']:
         context.error(f'unsupported export mode: {export_mode}, aborting export!')
         return None
 
@@ -83,10 +83,19 @@ def retrieve_data(context, export_settings):
                 context.error('aborting export!')
                 return None
 
+    if 'AA' in export_mode:
+        timecoded = export_settings['compression'] == 'TC'
+        data_context.animation_col = retrieve_all_animations(context, container_name, hierarchy, rig, timecoded)
+        # if not data_context.animation.validate(context):
+        #     context.error('aborting export!')
+        #     return None
+        return data_context
+        
     if 'A' in export_mode:
         timecoded = export_settings['compression'] == 'TC'
         data_context.animation = retrieve_animation(context, container_name, hierarchy, rig, timecoded)
         if not data_context.animation.validate(context):
             context.error('aborting export!')
             return None
+
     return data_context

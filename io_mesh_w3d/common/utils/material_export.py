@@ -1,6 +1,7 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+from importlib.resources import contents
 from mathutils import Vector
 from io_mesh_w3d.w3d.structs.mesh_structs.shader import *
 from io_mesh_w3d.w3d.structs.mesh_structs.vertex_material import *
@@ -13,17 +14,22 @@ def set_texture_extension_to_tga(texture_name):
     # the engine searches for .tga by default or replaces it with .dds
     return texture_name.rsplit('.', 1)[0] + '.tga'
 
+def find_texture_name(texture):
+    if isinstance(texture, str):
+        return texture
+    if texture is not None and hasattr(texture, 'image') and texture.image is not None:
+        return texture.image.name
+    if texture is not None and hasattr(texture, 'name') and texture.name is not None:
+        return texture.name
+    return ''
 
 def append_texture_if_valid(texture, used_textures):
-    if isinstance(texture, str):
-        if texture != '':
-            texture = set_texture_extension_to_tga(texture)
-            if texture not in used_textures:
-                used_textures.append(texture)
-    elif texture is not None and texture.image is not None:
-        texture = set_texture_extension_to_tga(texture.image.name)
+    texture = find_texture_name(texture)
+    if isinstance(texture, str) and texture is not '':
+        texture = set_texture_extension_to_tga(texture)
         if texture not in used_textures:
             used_textures.append(texture)
+
     return used_textures
 
 
@@ -31,6 +37,7 @@ def get_used_textures(material, principled, used_textures):
     used_textures = append_texture_if_valid(principled.base_color_texture, used_textures)
     used_textures = append_texture_if_valid(principled.normalmap_texture, used_textures)
     used_textures = append_texture_if_valid(principled.specular_texture, used_textures)
+    used_textures = append_texture_if_valid(material.stage1_image, used_textures)
 
     used_textures = append_texture_if_valid(material.texture_1, used_textures)
     used_textures = append_texture_if_valid(material.environment_texture, used_textures)

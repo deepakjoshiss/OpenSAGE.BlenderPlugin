@@ -27,7 +27,7 @@ def load_file(context, data_context, path=None):
 
     while file.tell() < filesize:
         chunk_type, chunk_size, chunk_end = read_chunk_head(file)
-
+        # print(f'size \'{file.tell()}\' \'{chunk_type}\' \'{chunk_size}\' \'{chunk_end}\'')
         if chunk_type == W3D_CHUNK_MESH:
             data_context.meshes.append(Mesh.read(context, file, chunk_end))
         elif chunk_type == W3D_CHUNK_HIERARCHY:
@@ -102,10 +102,10 @@ def load_file(context, data_context, path=None):
 ##########################################################################
 
 
-def load(context):
+def load(context, path = None):
     data_context = DataContext()
 
-    load_file(context, data_context)
+    load_file(context, data_context, path)
 
     hierarchy = data_context.hierarchy
     hlod = data_context.hlod

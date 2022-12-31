@@ -47,6 +47,16 @@ def list_size(objects, include_head=True):
         size += obj.size()
     return size
 
+def list_size_type(objects, include_head=True, type = 0):
+    if not objects:
+        return 0
+    size = 0
+    if include_head:
+        size += HEAD
+    for obj in objects:
+        size += obj.size(type)
+    return size
+
 
 def vec_list_size(vec_list, include_head=True):
     return data_list_size(vec_list, include_head, 12)

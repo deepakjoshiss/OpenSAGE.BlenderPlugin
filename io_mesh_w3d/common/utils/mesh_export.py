@@ -1,8 +1,10 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+import re
 import bpy
 import bmesh
+from ...utils import index_in_array
 from mathutils import Vector, Matrix
 from bpy_extras import node_shader_utils
 
@@ -28,7 +30,9 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
 
         if mesh_object.mode != 'OBJECT':
             bpy.ops.object.mode_set(mode='OBJECT')
-
+        
+        print('djjp mwsh object is ' + mesh_object.name + ' ' + mesh_object.data.userText)
+        
         mesh_struct = Mesh()
         mesh_struct.header = MeshHeader(
             mesh_name=mesh_object.name,
@@ -81,6 +85,7 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
         for i, vertex in enumerate(mesh.vertices):
             mesh_struct.shade_ids.append(i)
             matrix = Matrix.Identity(4)
+            matrix2 = Matrix.Identity(4)
 
             if vertex.groups:
                 vert_inf = VertexInfluence()
@@ -96,7 +101,7 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     context.warning(f'mesh \'{mesh_object.name}\' vertex {i} both bone weights where 0!')
                     vert_inf.bone_inf = 1.0
 
-                if abs(vert_inf.bone_inf + vert_inf.xtra_inf - 1.0) > 0.1:
+                if abs(vert_inf.bone_inf + vert_inf.xtra_inf - 1.0) > 0.005:
                     context.warning(
                         f'mesh \'{mesh_object.name}\' vertex {i} both bone weights did not add up to 100%! ({vert_inf.bone_inf:.{2}f}, {vert_inf.xtra_inf:.{2}f})')
                     vert_inf.bone_inf = 1.0 - vert_inf.xtra_inf
@@ -107,6 +112,11 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     matrix = matrix @ rig.data.bones[hierarchy.pivots[vert_inf.bone_idx].name].matrix_local.inverted()
                 else:
                     matrix = matrix @ rig.matrix_local.inverted()
+
+                if vert_inf.xtra_idx > 0:
+                    matrix2 = matrix2 @ rig.data.bones[hierarchy.pivots[vert_inf.xtra_idx].name].matrix_local.inverted()
+                else:
+                    matrix2 = matrix2 @ matrix
 
                 if len(vertex.groups) > 2:
                     overskinned_vertices_error = True
@@ -121,13 +131,17 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
             vertex.co.y *= scale.y
             vertex.co.z *= scale.z
             mesh_struct.verts.append(matrix @ vertex.co)
+            mesh_struct.verts2.append(matrix2 @ vertex.co)
 
             _, rotation, _ = matrix.decompose()
+            _, rotation2, _ = matrix2.decompose()
+
 
             if i in loop_dict:
                 loop = loop_dict[i]
                 # do NOT use loop.normal here! that might result in weird shading issues
-                mesh_struct.normals.append(rotation @ vertex.normal)
+                mesh_struct.normals.append(rotation @ loop.normal)
+                mesh_struct.normals2.append(rotation2 @ loop.normal)
 
                 if mesh.uv_layers:
                     # in order to adapt to 3ds max orientation
@@ -152,6 +166,8 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
             (mesh_object.bound_box[6][0],
              mesh_object.bound_box[6][1],
              mesh_object.bound_box[6][2]))
+
+        mesh_struct.aabbtree = create_aabbtree(mesh_object.data)
 
         for poly in mesh.polygons:
             triangle = Triangle(
@@ -181,36 +197,39 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
         header.sphCenter = center
         header.sphRadius = radius
 
-        tx_stages = []
+        # tx_stages = []
+        uv_layers = []
+
         for i, uv_layer in enumerate(mesh.uv_layers):
-            stage = TextureStage(
-                tx_ids=[[i]],
-                tx_coords=[[Vector((0.0, 0.0))] * len(mesh_struct.verts)])
+            coords = [[Vector((0.0, 0.0))] * len(mesh_struct.verts)]
 
             for j, face in enumerate(b_mesh.faces):
                 for loop in face.loops:
                     vert_index = mesh_struct.triangles[j].vert_ids[loop.index % 3]
-                    stage.tx_coords[0][vert_index] = uv_layer.data[loop.index].uv.copy()
-            tx_stages.append(stage)
+                    coords[0][vert_index] = uv_layer.data[loop.index].uv.copy()
+            uv_layers.append(coords)
 
         b_mesh.free()
 
         for i, material in enumerate(mesh.materials):
             mat_pass = MaterialPass()
-
+            mesh_textures = []
             if material is None:
                 context.warning(f'mesh \'{mesh_object.name}\' uses a invalid/empty material!')
                 continue
 
             principled = node_shader_utils.PrincipledBSDFWrapper(material, is_readonly=True)
-
-            used_textures = get_used_textures(material, principled, used_textures)
+            mesh_textures = get_used_textures(material, principled, mesh_textures)
+     
+            for texs in mesh_textures:
+                if texs not in used_textures:
+                    used_textures.append(texs)
 
             if context.file_format == 'W3X' or (
                     material.material_type == 'SHADER_MATERIAL' and not force_vertex_materials):
                 mat_pass.shader_material_ids = [i]
-                if i < len(tx_stages):
-                    mat_pass.tx_coords = tx_stages[i].tx_coords[0]
+                if i < len(uv_layers):
+                    mat_pass.tx_coords = uv_layers[i][0]
                 mesh_struct.shader_materials.append(
                     retrieve_shader_material(context, material, principled))
 
@@ -232,13 +251,36 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                     tex = Texture(
                         id=img.name,
                         file=filepath,
-                        texture_info=info)
+                        texture_info=None)
                     mesh_struct.textures.append(tex)
                     shader.texturing = 1
+                    tx_id = index_in_array(mesh_textures, tex.id, 0)
+                    if i < len(uv_layers):
+                        mat_pass.tx_stages.append(TextureStage(
+                            tx_ids=[[tx_id]],
+                            tx_coords=uv_layers[i]
+                        ))
+                    
+                    if material.stage1_image is not None:
+                        img = material.stage1_image
+                        filepath = os.path.basename(img.filepath)
+                        if filepath == '':
+                            filepath = img.name
+                        print(f'djj appending stage 1 \'{img.name}: {filepath}\'')
+                        if(img.name != tex.id):
+                            tex = Texture(
+                                id=img.name,
+                                file=filepath,
+                                texture_info=None)
+                            mesh_struct.textures.append(tex)  
 
-                    if i < len(tx_stages):
-                        mat_pass.tx_stages.append(tx_stages[i])
-
+                        tx_id = index_in_array(mesh_textures, tex.id, 0)
+                        if i < len(uv_layers):
+                            mat_pass.tx_stages.append(TextureStage(
+                                tx_ids=[[tx_id]],
+                                tx_coords=uv_layers[i]
+                            ))
+            
             mesh_struct.material_passes.append(mat_pass)
 
         for layer in mesh.vertex_colors:
@@ -246,21 +288,18 @@ def retrieve_meshes(context, hierarchy, rig, container_name, force_vertex_materi
                 index = int(layer.name.split('_')[-1])
             else:
                 index = 0
+
             if 'DCG' in layer.name:
-                target = mesh_struct.material_passes[index].dcg
+                print('djjp found dcg colors ' + str(index))
+                mesh_struct.material_passes[index].dcg = create_vertex_color_array(mesh, layer)
             elif 'DIG' in layer.name:
-                target = mesh_struct.material_passes[index].dig
+                mesh_struct.material_passes[index].dig = create_vertex_color_array(mesh, layer)
             elif 'SCG' in layer.name:
-                target = mesh_struct.material_passes[index].scg
+                mesh_struct.material_passes[index].scg = create_vertex_color_array(mesh, layer)
             else:
                 context.warning(f'vertex color layer name \'{layer.name}\' is not one of [DCG, DIG, SCG]')
                 continue
-
-            target = [RGBA] * len(mesh.vertices)
-
-            for i, loop in enumerate(mesh.loops):
-                target[loop.vertex_index] = RGBA(layer.data[i].color)
-
+           
         header.vert_channel_flags = VERTEX_CHANNEL_LOCATION | VERTEX_CHANNEL_NORMAL
 
         if mesh_struct.vert_infs:
@@ -349,6 +388,60 @@ def split_multi_uv_vertices(context, mesh, b_mesh):
 
     for ver in b_mesh.verts:
         ver.select_set(False)
+    totals = 0
+    for i, uv_layer in enumerate(mesh.uv_layers):
+        tx_coords = [None] * len(uv_layer.data)
+        for j, face in enumerate(b_mesh.faces):
+            loop = floop = face.loops[0]
+            while True:
+                oloop = loop.link_loop_radial_next
+                while True:
+                    # print('djjp loops ' + str(loop.index) + ' ' + str(oloop.index))
+                
+                    auv_cur = uv_layer.data[loop.index].uv
+                    auv_next = uv_layer.data[loop.link_loop_next.index].uv
+
+                    buv_cur = uv_layer.data[oloop.index].uv
+                    buv_next = uv_layer.data[oloop.link_loop_next.index].uv
+
+                    if loop.vert != oloop.vert:
+                        # print('djjp flipping ')
+                        tuv = buv_next
+                        buv_next = buv_cur
+                        buv_cur = tuv
+                    
+                    # print('djjp values are ' + str(auv_cur) + ' ' + str(buv_cur) + '               ' + str(auv_next) + ' ' + str(buv_next))
+                    if auv_cur != buv_cur or auv_next != buv_next:
+                        totals +=1
+                        # print('fount a seam ' + str(totals))
+                        loop.edge.select_set(True)
+                        break
+                    
+                    oloop = oloop.link_loop_radial_next
+                    if oloop == loop:
+                        break
+
+                loop = loop.link_loop_next
+                if loop == floop:
+                    break
+        print('found seams are ' + str(totals))
+
+    split_edges = [e for e in b_mesh.edges if e.select]
+
+    for ver in b_mesh.verts:
+        ver.select_set(False)
+        
+    if len(split_edges) > 0:
+        bmesh.ops.split_edges(b_mesh, edges=split_edges, verts=[], use_verts=False)
+        context.info(f'mesh \'{mesh.name}\' vertices have been split because of multiple uv coordinates per vertex!')
+
+    return b_mesh
+
+def split_multi_uv_verticesOrig(context, mesh, b_mesh):
+    b_mesh.verts.ensure_lookup_table()
+
+    for ver in b_mesh.verts:
+        ver.select_set(False)
 
     for i, uv_layer in enumerate(mesh.uv_layers):
         tx_coords = [None] * len(uv_layer.data)
@@ -417,3 +510,28 @@ def calculate_mesh_sphere(mesh):
     radius = z.length
 
     return validate_all_points_inside_sphere(center, radius, vertices)
+
+def create_vertex_color_array(mesh, layer):
+    target = [RGBA] * len(mesh.vertices)
+    for i, loop in enumerate(mesh.loops):
+        target[loop.vertex_index] = RGBA(layer.data[i].color)
+    return target
+
+def create_aabbtree(mesh): 
+    if('aabbtree' in mesh):
+        tree = mesh.aabbtree
+        result = AABBTree()
+        result.header = AABBTreeHeader(tree.node_count, tree.poly_count)
+        print('djjp found aabb object ' + str(tree.poly_count) + ', ' + str(len(tree.poly_indices)))
+        for poly in tree.poly_indices:
+            result.poly_indices.append(poly.intProp)
+
+        for node in tree.nodes:
+            nodeObj = AABBTreeNode()
+            values = node.values
+            nodeObj.min = to_vec(values[0].vectorProp)
+            nodeObj.max = to_vec(values[1].vectorProp)
+            nodeObj.children = Children(values[2].intProp, values[3].intProp)
+            result.nodes.append(nodeObj)       
+        return result
+    return None

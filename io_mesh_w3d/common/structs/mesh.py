@@ -41,8 +41,8 @@ class MeshHeader:
     def __init__(
             self,
             version=Version(
-                major=4,
-                minor=2),
+                major=5,
+                minor=0),
             attrs=GEOMETRY_TYPE_NORMAL,
             mesh_name='',
             container_name='',
@@ -144,6 +144,8 @@ class Mesh:
         self.user_text = ''
         self.verts = []
         self.normals = []
+        self.verts2 = []
+        self.normals2 = []
         self.tangents = []
         self.bitangents = []
         self.vert_infs = []
@@ -251,6 +253,7 @@ class Mesh:
                 context.info('-> bitangents are computed in blender')
                 io_stream.seek(chunk_size, 1)
             elif chunk_type == W3D_CHUNK_AABBTREE:
+                print('djjp reading aabtree')
                 result.aabbtree = AABBTree.read(context, io_stream, subchunk_end)
             elif chunk_type == W3D_CHUNK_PRELIT_UNLIT:
                 result.prelit_unlit = PrelitBase.read(context, io_stream, subchunk_end, chunk_type)
@@ -276,6 +279,11 @@ class Mesh:
         size += text_size(self.user_text)
         size += vec_list_size(self.verts)
         size += vec_list_size(self.normals)
+     
+        if(self.multi_bone_skinned):
+            size += vec_list_size(self.verts2)
+            size += vec_list_size(self.normals2)
+
         size += vec_list_size(self.tangents)
         size += vec_list_size(self.bitangents)
         size += list_size(self.triangles)
@@ -316,6 +324,13 @@ class Mesh:
 
         write_chunk_head(W3D_CHUNK_VERTEX_NORMALS, io_stream, vec_list_size(self.normals, False))
         write_list(self.normals, io_stream, write_vector)
+
+        if(self.multi_bone_skinned):
+            write_chunk_head(W3D_CHUNK_VERTICES_2, io_stream, vec_list_size(self.verts2, False))
+            write_list(self.verts2, io_stream, write_vector)
+
+            write_chunk_head(W3D_CHUNK_NORMALS_2, io_stream, vec_list_size(self.normals2, False))
+            write_list(self.normals2, io_stream, write_vector)
 
         if self.tangents:
             write_chunk_head(W3D_CHUNK_TANGENTS, io_stream, vec_list_size(self.tangents, False))

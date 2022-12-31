@@ -1,6 +1,7 @@
 # <pep8 compliant>
 # Written by Stephan Vedder and Michael Schnabel
 
+from math import floor
 import bpy
 from mathutils import Quaternion
 from io_mesh_w3d.common.utils.helpers import *
@@ -19,15 +20,10 @@ def is_rotation(fcu):
 def is_visibility(fcu):
     return 'visibility' in fcu.data_path or 'hide' in fcu.data_path
 
-
-def retrieve_channels(obj, hierarchy, timecoded, name=None):
-    if obj.animation_data is None or obj.animation_data.action is None:
-        return []
-
+def retrieve_channel_data(hierarchy, timecoded, action, name=None):
     channel = None
     channels = []
-
-    for fcu in obj.animation_data.action.fcurves:
+    for fcu in action.fcurves:
         if name is None:
             values = fcu.data_path.split('"')
             if len(values) == 1:
@@ -44,7 +40,8 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
 
         channel_type = fcu.array_index
         vec_len = 1
-
+        
+        print('djj animation fce is ' + fcu.data_path + ' ' + pivot_name + ' ' +str(pivot_index))
         if is_rotation(fcu):
             channel_type = CHANNEL_Q
             vec_len = 4
@@ -54,10 +51,21 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
 
         if not (channel_type == 6 and fcu.array_index > 0):
             if timecoded:
-                channel = TimeCodedAnimationChannel(
-                    vector_len=vec_len,
-                    type=channel_type,
-                    pivot=pivot_index)
+                if is_visibility(fcu):
+                    print('djj In time coded bit channel ' +  fcu.data_path)
+                    channel = TimeCodedBitChannel(
+                        type=0,
+                        pivot=pivot_index)
+                    # num_keyframes = len(fcu.keyframe_points)
+                    # channel.vector_len = vec_len
+                    # channel.time_codes = [None] * num_keyframes
+                    # channel.num_time_codes = num_keyframes
+                    channel.default_value = 1
+                else:    
+                    channel = TimeCodedAnimationChannel(
+                        vector_len=vec_len,
+                        type=channel_type,
+                        pivot=pivot_index)
 
                 num_keyframes = len(fcu.keyframe_points)
                 channel.time_codes = [None] * num_keyframes
@@ -87,7 +95,9 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
                 frame = int(keyframe.co.x)
                 val = keyframe.co.y
 
-                if is_visibility(fcu) or is_translation(channel_type):
+                if is_visibility(fcu):
+                    channel.time_codes[i] = TimeCodedBitDatum(time_code=frame, value=val)
+                elif is_translation(channel_type):
                     channel.time_codes[i] = TimeCodedDatum(time_code=frame, value=val)
                 else:
                     if channel.time_codes[i] is None:
@@ -117,6 +127,30 @@ def retrieve_channels(obj, hierarchy, timecoded, name=None):
     return channels
 
 
+def retrieve_channels(obj, hierarchy, timecoded, name=None):
+    if obj.animation_data is None or obj.animation_data.action is None:
+        return []
+
+    return retrieve_channel_data(hierarchy, timecoded, obj.animation_data.action, name)
+
+def create_anim_struct(animation_name, hierarchy, timecoded, channels, frame_range = None):
+    if timecoded:
+        ani_struct = CompressedAnimation.create_using_channels(
+            header=CompressedAnimationHeader(flavor=TIME_CODED_FLAVOR),
+            all_channels=channels)
+    else:
+        ani_struct = Animation(header=AnimationHeader(), channels=channels)
+
+    ani_struct.header.name = animation_name
+    ani_struct.header.hierarchy_name = hierarchy.name()
+
+    start_frame = floor(frame_range[0]) if frame_range else bpy.context.scene.frame_start
+    end_frame = floor(frame_range[1]) if frame_range else bpy.context.scene.frame_end
+
+    ani_struct.header.num_frames = end_frame + 1 - start_frame
+    ani_struct.header.frame_rate = bpy.context.scene.render.fps
+    return ani_struct
+
 def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
     channels = []
 
@@ -126,21 +160,22 @@ def retrieve_animation(context, animation_name, hierarchy, rig, timecoded):
 
     if rig is not None:
         channels.extend(retrieve_channels(rig, hierarchy, timecoded))
+        # print('djjp extending rig ' + str(len(channels)))
         channels.extend(retrieve_channels(rig.data, hierarchy, timecoded))
+        # print('djjp extending rig data' + str(len(channels)))
 
-    if timecoded:
-        ani_struct = CompressedAnimation(
-            header=CompressedAnimationHeader(flavor=TIME_CODED_FLAVOR),
-            time_coded_channels=channels)
-    else:
-        ani_struct = Animation(header=AnimationHeader(), channels=channels)
+    return create_anim_struct(animation_name, hierarchy, timecoded, channels)
 
-    ani_struct.header.name = animation_name
-    ani_struct.header.hierarchy_name = hierarchy.name()
 
-    start_frame = bpy.context.scene.frame_start
-    end_frame = bpy.context.scene.frame_end
+def retrieve_all_animations(context, animation_name, hierarchy, rig, timecoded):
+    channels = None
+    anims = []
+    h_name = hierarchy.name().split('_')[0]
+    for action in bpy.data.actions:
+        channels = []
+        if rig is not None:
+            channels.extend(retrieve_channel_data(hierarchy, timecoded, action))
+        # print('djjp action name is ' + action.name + ' ' + str(len(channels)))
+        anims.append(create_anim_struct(h_name + '_' + action.name, hierarchy, timecoded, channels, action.frame_range))
 
-    ani_struct.header.num_frames = end_frame + 1 - start_frame
-    ani_struct.header.frame_rate = bpy.context.scene.render.fps
-    return ani_struct
+    return anims
