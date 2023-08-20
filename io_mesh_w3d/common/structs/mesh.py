@@ -144,6 +144,8 @@ class Mesh:
         self.user_text = ''
         self.verts = []
         self.normals = []
+        self.verts_2 = []
+        self.normals_2 = []
         self.tangents = []
         self.bitangents = []
         self.vert_infs = []
@@ -276,6 +278,10 @@ class Mesh:
         size += text_size(self.user_text)
         size += vec_list_size(self.verts)
         size += vec_list_size(self.normals)
+        if self.multi_bone_skinned and self.verts_2:
+            size += vec_list_size(self.verts_2)
+        if self.multi_bone_skinned and self.normals_2:
+            size += vec_list_size(self.normals_2)
         size += vec_list_size(self.tangents)
         size += vec_list_size(self.bitangents)
         size += list_size(self.triangles)
@@ -314,8 +320,16 @@ class Mesh:
         write_chunk_head(W3D_CHUNK_VERTICES, io_stream, vec_list_size(self.verts, False))
         write_list(self.verts, io_stream, write_vector)
 
+        if self.multi_bone_skinned and self.verts_2:
+            write_chunk_head(W3D_CHUNK_VERTICES_2, io_stream, vec_list_size(self.verts_2, False))
+            write_list(self.verts_2, io_stream, write_vector)
+
         write_chunk_head(W3D_CHUNK_VERTEX_NORMALS, io_stream, vec_list_size(self.normals, False))
         write_list(self.normals, io_stream, write_vector)
+
+        if self.multi_bone_skinned and self.normals_2:
+            write_chunk_head(W3D_CHUNK_NORMALS_2, io_stream, vec_list_size(self.normals_2, False))
+            write_list(self.normals_2, io_stream, write_vector)
 
         if self.tangents:
             write_chunk_head(W3D_CHUNK_TANGENTS, io_stream, vec_list_size(self.tangents, False))
@@ -511,7 +525,14 @@ class Mesh:
         sphere.create(xml_mesh)
 
         create_object_list(xml_mesh, 'Vertices', self.verts, create_vector, 'V')
+
+        if self.multi_bone_skinned and self.verts_2:
+            create_object_list(xml_mesh, 'Vertices', self.verts_2, create_vector, 'V')
+
         create_object_list(xml_mesh, 'Normals', self.normals, create_vector, 'N')
+
+        if self.multi_bone_skinned and self.normals_2:
+            create_object_list(xml_mesh, 'Normals', self.normals_2, create_vector, 'N')
 
         if self.tangents:
             create_object_list(xml_mesh, 'Tangents', self.tangents, create_vector, 'T')
